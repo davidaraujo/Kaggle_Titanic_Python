@@ -11,6 +11,8 @@ import csv as csv
 from sklearn.ensemble import RandomForestClassifier
 import pylab as P
 import re
+from numpy import NaN
+
 
 # Data cleanup
 # TRAIN DATA
@@ -76,21 +78,14 @@ for i in range(0, 2):
             train_df.loc[ (train_df.Age.isnull()) & (train_df.Gender == i) & (train_df.Pclass == j+1) & (train_df.Embarked == k),\
                     'Age'] = median_ages[(i,j,k)]
 
-# TODO      
-t =  train_df[ (train_df['Gender'] == 1)]['Name'].str.split(',').apply(pd.Series, 2)
 
-
-#print t.str.split('.')
-#print test
-#print re.sub(r'\s', '', test).split(',')
-
-
-# Remove the Name column, Cabin, Ticket, and Sex (since I copied and filled it to Gender)
-train_df = train_df.drop(['Name', 'Sex', 'Ticket', 'Cabin', 'PassengerId'], axis=1) 
 
 # lets create additional columns to the model
 train_df['FamilySize'] = train_df.SibSp + train_df.Parch # family size
 train_df['Age*Class'] = train_df.Age * train_df.Pclass # higher value less likely to survive
+
+# Remove the Name column, Cabin, Ticket, and Sex (since I copied and filled it to Gender)
+#train_df = train_df.drop(['Name', 'Sex', 'Ticket', 'Cabin', 'PassengerId'], axis=1) 
 
 
 #train_df['TitleMen'] = 
@@ -162,20 +157,46 @@ if len(test_df.Fare[ test_df.Fare.isnull() ]) > 0:
 
 # Collect the test data's PassengerIds before dropping it
 ids = test_df['PassengerId'].values
+
+# get the Title      
+nameSplit1 =  test_df['Name'].str.split(',').apply(pd.Series, 2)
+firstName1 = nameSplit1[1]
+title1 = firstName1.str.split('.').str[0]
+title1 = title1.map(lambda x: x.lstrip(' ').rstrip('aAbBcC'))
+
+Titles1 = list(enumerate(np.unique(title1)))    # determine all values of Titles,
+Titles_dict1 = { name : i for i, name in Titles1 }              # set up a dictionary in the form  Titles : index
+
+test_df['Title'] = title1.map(lambda x: Titles_dict1[x]).astype(int)     # Convert all Titles strings to int
+#( {'Dr': 0, 'Master': 1, 'Miss': 2, 'Mr': 3,'Mrs': 4, 'Ms': 5, 'Rev' : 6, 'Major' : 7, 'Sir' : 8, 'Mme': 9}).astype(int)
+
+# TEST DATA get the Title      
+nameSplit =  train_df['Name'].str.split(',').apply(pd.Series, 2)
+firstName = nameSplit[1]
+title = firstName.str.split('.').str[0]
+title = title.map(lambda x: x.lstrip(' ').rstrip('aAbBcC'))
+
+train_df['Title'] = title.map( lambda x: Titles_dict1[x]).astype(int)     # Convert all Titles strings to int
+#{'Dr': 0, 'Master': 1, 'Miss': 2, 'Mr': 3,'Mrs': 4, 'Ms': 5, 'Rev' : 6, 'Major' : 7, 'Sir' : 8, 'Mme': 9}).astype(int)
+# Remove the Name column, Cabin, Ticket, and Sex (since I copied and filled it to Gender)
+train_df = train_df.drop(['Name', 'Sex', 'Ticket', 'Cabin', 'PassengerId'], axis=1) 
+
+
+
+
+
+    
 # Remove the Name column, Cabin, Ticket, and Sex (since I copied and filled it to Gender)
 test_df = test_df.drop(['Name', 'Sex', 'Ticket', 'Cabin', 'PassengerId'], axis=1) 
-
+    
 # lets create additional columns to the model
 test_df['FamilySize'] = test_df.SibSp + test_df.Parch # family size
 test_df['Age*Class'] = test_df.Age * test_df.Pclass # higher value less likely to survive
-
 
 # The data is now ready to go. So lets fit to the train, then predict to the test!
 # Convert back to a numpy array
 train_data = train_df.values
 test_data = test_df.values
-
-
 
 
 print 'Training...'
