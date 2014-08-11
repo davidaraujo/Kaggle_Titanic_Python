@@ -11,8 +11,6 @@ import csv as csv
 from sklearn.ensemble import RandomForestClassifier
 import pylab as P
 import re
-from numpy import NaN
-
 
 # Data cleanup
 # TRAIN DATA
@@ -23,7 +21,6 @@ train_df = pd.read_csv('train.csv', header=0)        # Load the train file into 
 
 # female = 0, Male = 1
 train_df['Gender'] = train_df['Sex'].map( {'female': 0, 'male': 1} ).astype(int)
-
 
 # Embarked from 'C', 'Q', 'S'
 # Note this is not ideal: in translating categories to numbers, Port "2" is not 2 times greater than Port "1", etc.
@@ -39,9 +36,7 @@ for i in range(0, 2):
         median_embarked[(i,j)] = train_df[(train_df['Gender'] == i) & \
                                         (train_df['Pclass'] == j+1)]['Embarked'].dropna().mode().values
 
-#print median_embarked
-
-#print median_embarked
+#fill Embarked that are null
 for i in range(0, 2):
     for j in range(0, 3):
             train_df.loc[ (train_df.Embarked.isnull()) & (train_df.Gender == i) & (train_df.Pclass == j+1),\
@@ -60,7 +55,6 @@ if len(train_df.Age[ train_df.Age.isnull() ]) > 0:
 # A smarted way using sex, pclass, embarked to derive median_age in each case
 median_ages = {} # np.zeros((3,3))
 
-
 # i is the Gender (2 values), j is the Pclass (3 values) and k is Embarked (3 values)
 for i in range(0, 2):
     for j in range(0, 3):
@@ -70,8 +64,7 @@ for i in range(0, 2):
                                         (train_df['Pclass'] == j+1) & \
                                         (train_df['Embarked'] == k)]['Age'].dropna().median()
 
-#print median_ages
-
+#fill Age that are null
 for i in range(0, 2):
     for j in range(0, 3):
         for k in range(0, 3):   
@@ -79,14 +72,68 @@ for i in range(0, 2):
                     'Age'] = median_ages[(i,j,k)]
 
 
+#train_df['Age'].astype(int).hist()
+#P.show()
+
+# create additional AgeInterval
+train_df.loc[ (train_df['Age'] < 10), 'AgeInterval' ]  =  0
+train_df.loc[ (train_df['Age'] >= 10) & (train_df['Age'] < 20), 'AgeInterval' ]  =  1
+train_df.loc[ (train_df['Age'] >= 20) & (train_df['Age'] < 30), 'AgeInterval' ]  =  2
+train_df.loc[ (train_df['Age'] >= 30) & (train_df['Age'] < 40), 'AgeInterval' ]  =  3
+train_df.loc[ (train_df['Age'] >= 40) & (train_df['Age'] < 50), 'AgeInterval' ]  =  4
+train_df.loc[ (train_df['Age'] >= 50) & (train_df['Age'] < 60), 'AgeInterval' ]  =  5
+train_df.loc[ (train_df['Age'] >= 60) & (train_df['Age'] < 70), 'AgeInterval' ]  =  6
+train_df.loc[ (train_df['Age'] >= 70) , 'AgeInterval' ]  =  7
+
+# create additional FareInterval
+train_df.loc[ (train_df['Fare'] < 10), 'FareInterval' ]  =  0
+train_df.loc[ (train_df['Fare'] >= 10) & (train_df['Fare'] < 20), 'FareInterval' ]  =  1
+train_df.loc[ (train_df['Fare'] >= 20) & (train_df['Fare'] < 30), 'FareInterval' ]  =  2
+train_df.loc[ (train_df['Fare'] >= 30), 'FareInterval' ]  =  3
+
+# create additional Title column      
+nameSplit =  train_df['Name'].str.split(',').apply(pd.Series, 2)
+firstName = nameSplit[1]
+title = firstName.str.split('.').str[0]
+title = title.map(lambda x: x.lstrip(' ').rstrip('aAbBcC'))
+
+titles_dic = {'Col': 0,
+ 'Don': 0,
+ 'Dr': 1,
+ 'Master': 1,
+ 'Miss': 2,
+ 'Mr': 0,
+ 'Mrs': 2,
+ 'Ms': 2,
+ 'Rev': 0,
+ 'Mme': 0,
+ 'Capt': 1, 
+ 'Col': 0, 
+ 'Don': 1,
+ 'Jonkheer': 0,
+ 'Lady': 2,
+ 'Major': 1, 
+ 'Mlle': 2,
+ 'Sir': 1,
+ 'the Countess': 1
+ }
+ 
+
+train_df['Title'] = title.map( titles_dic ).astype(int)     # Convert all Titles strings to int
 
 # lets create additional columns to the model
-train_df['FamilySize'] = train_df.SibSp + train_df.Parch # family size
-train_df['Age*Class'] = train_df.Age * train_df.Pclass # higher value less likely to survive
+#train_df['FamilySize'] = train_df.SibSp + train_df.Parch # family size
+#train_df['Age*Class'] = train_df.Age * train_df.Pclass # higher value less likely to survive
+
+
+
+# Remove the Name column, Cabin, Ticket, and Sex (since I copied and filled it to Gender)
+train_df = train_df.drop(['Name', 'Sex', 'Ticket', 'Cabin', 'PassengerId', 'Age', 'Fare'], axis=1) 
+
+
 
 # Remove the Name column, Cabin, Ticket, and Sex (since I copied and filled it to Gender)
 #train_df = train_df.drop(['Name', 'Sex', 'Ticket', 'Cabin', 'PassengerId'], axis=1) 
-
 
 #train_df['TitleMen'] = 
 
@@ -94,7 +141,6 @@ train_df['Age*Class'] = train_df.Age * train_df.Pclass # higher value less likel
 #P.show()
 #train_df['Age*Class'].astype(int).hist()
 #P.show()
-
 
 
 # TEST DATA
@@ -158,40 +204,37 @@ if len(test_df.Fare[ test_df.Fare.isnull() ]) > 0:
 # Collect the test data's PassengerIds before dropping it
 ids = test_df['PassengerId'].values
 
-# get the Title      
-nameSplit1 =  test_df['Name'].str.split(',').apply(pd.Series, 2)
-firstName1 = nameSplit1[1]
-title1 = firstName1.str.split('.').str[0]
-title1 = title1.map(lambda x: x.lstrip(' ').rstrip('aAbBcC'))
 
-Titles1 = list(enumerate(np.unique(title1)))    # determine all values of Titles,
-Titles_dict1 = { name : i for i, name in Titles1 }              # set up a dictionary in the form  Titles : index
+# create additional AgeInterval
+test_df.loc[ (test_df['Age'] < 10), 'AgeInterval' ]  =  0
+test_df.loc[ (test_df['Age'] >= 10) & (test_df['Age'] < 20), 'AgeInterval' ]  =  1
+test_df.loc[ (test_df['Age'] >= 20) & (test_df['Age'] < 30), 'AgeInterval' ]  =  2
+test_df.loc[ (test_df['Age'] >= 30) & (test_df['Age'] < 40), 'AgeInterval' ]  =  3
+test_df.loc[ (test_df['Age'] >= 40) & (test_df['Age'] < 50), 'AgeInterval' ]  =  4
+test_df.loc[ (test_df['Age'] >= 50) & (test_df['Age'] < 60), 'AgeInterval' ]  =  5
+test_df.loc[ (test_df['Age'] >= 60) & (test_df['Age'] < 70), 'AgeInterval' ]  =  6
+test_df.loc[ (test_df['Age'] >= 70) , 'AgeInterval' ]  =  7
 
-test_df['Title'] = title1.map(lambda x: Titles_dict1[x]).astype(int)     # Convert all Titles strings to int
-#( {'Dr': 0, 'Master': 1, 'Miss': 2, 'Mr': 3,'Mrs': 4, 'Ms': 5, 'Rev' : 6, 'Major' : 7, 'Sir' : 8, 'Mme': 9}).astype(int)
+# create additional FareInterval
+test_df.loc[ (test_df['Fare'] < 10), 'FareInterval' ]  =  0
+test_df.loc[ (test_df['Fare'] >= 10) & (test_df['Fare'] < 20), 'FareInterval' ]  =  1
+test_df.loc[ (test_df['Fare'] >= 20) & (test_df['Fare'] < 30), 'FareInterval' ]  =  2
+test_df.loc[ (test_df['Fare'] >= 30), 'FareInterval' ]  =  3
 
-# TEST DATA get the Title      
-nameSplit =  train_df['Name'].str.split(',').apply(pd.Series, 2)
+# create additional Title column      
+nameSplit =  test_df['Name'].str.split(',').apply(pd.Series, 2)
 firstName = nameSplit[1]
 title = firstName.str.split('.').str[0]
 title = title.map(lambda x: x.lstrip(' ').rstrip('aAbBcC'))
 
-train_df['Title'] = title.map( lambda x: Titles_dict1[x]).astype(int)     # Convert all Titles strings to int
-#{'Dr': 0, 'Master': 1, 'Miss': 2, 'Mr': 3,'Mrs': 4, 'Ms': 5, 'Rev' : 6, 'Major' : 7, 'Sir' : 8, 'Mme': 9}).astype(int)
-# Remove the Name column, Cabin, Ticket, and Sex (since I copied and filled it to Gender)
-train_df = train_df.drop(['Name', 'Sex', 'Ticket', 'Cabin', 'PassengerId'], axis=1) 
-
-
-
-
-
+test_df['Title'] = title.map( titles_dic ).astype(int)     # Convert all Titles strings to int
     
+    # lets create additional columns to the model
+#test_df['FamilySize'] = test_df.SibSp + test_df.Parch # family size
+#test_df['Age*Class'] = test_df.Age * test_df.Pclass # higher value less likely to survive
+
 # Remove the Name column, Cabin, Ticket, and Sex (since I copied and filled it to Gender)
-test_df = test_df.drop(['Name', 'Sex', 'Ticket', 'Cabin', 'PassengerId'], axis=1) 
-    
-# lets create additional columns to the model
-test_df['FamilySize'] = test_df.SibSp + test_df.Parch # family size
-test_df['Age*Class'] = test_df.Age * test_df.Pclass # higher value less likely to survive
+test_df = test_df.drop(['Name', 'Sex', 'Ticket', 'Cabin', 'PassengerId', 'Age', 'Fare'], axis=1) 
 
 # The data is now ready to go. So lets fit to the train, then predict to the test!
 # Convert back to a numpy array
