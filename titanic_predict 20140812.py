@@ -11,7 +11,6 @@ import csv as csv
 from sklearn.ensemble import RandomForestClassifier
 import pylab as P
 import re
-import math as m
 
 # Data cleanup
 # TRAIN DATA
@@ -77,11 +76,14 @@ for i in range(0, 2):
 #P.show()
 
 # create additional AgeInterval
-train_df.loc[ (train_df['Age'] < 20), 'AgeInterval' ]  =  0
-train_df.loc[ (train_df['Age'] >= 20) & (train_df['Age'] < 40), 'AgeInterval' ]  =  1
-train_df.loc[ (train_df['Age'] >= 40) & (train_df['Age'] < 60), 'AgeInterval' ]  =  2
-train_df.loc[ (train_df['Age'] >= 60) & (train_df['Age'] < 80), 'AgeInterval' ]  =  3
-train_df.loc[ (train_df['Age'] >= 80) , 'AgeInterval' ]  =  4
+train_df.loc[ (train_df['Age'] < 10), 'AgeInterval' ]  =  0
+train_df.loc[ (train_df['Age'] >= 10) & (train_df['Age'] < 20), 'AgeInterval' ]  =  1
+train_df.loc[ (train_df['Age'] >= 20) & (train_df['Age'] < 30), 'AgeInterval' ]  =  2
+train_df.loc[ (train_df['Age'] >= 30) & (train_df['Age'] < 40), 'AgeInterval' ]  =  3
+train_df.loc[ (train_df['Age'] >= 40) & (train_df['Age'] < 50), 'AgeInterval' ]  =  4
+train_df.loc[ (train_df['Age'] >= 50) & (train_df['Age'] < 60), 'AgeInterval' ]  =  5
+train_df.loc[ (train_df['Age'] >= 60) & (train_df['Age'] < 70), 'AgeInterval' ]  =  6
+train_df.loc[ (train_df['Age'] >= 70) , 'AgeInterval' ]  =  7
 
 # create additional FareInterval
 train_df.loc[ (train_df['Fare'] < 10), 'FareInterval' ]  =  0
@@ -119,18 +121,16 @@ titles_dic = {'Col': 0,
 
 train_df['Title'] = title.map( titles_dic ).astype(int)     # Convert all Titles strings to int
 
-# create additional Cabin column
-train_df['Cabin'] = train_df['Cabin'].str.extract('(?P<letter>[ABCDEF])')
-#train_df[ (train_df.Cabin.isnull()) ] = 0
-train_df.loc[ (train_df.Cabin.isnull()), 'Cabin'] = 0
-train_df['Cabin'] = train_df['Cabin'].map( {0:0, 'A': 1, 'B': 2, 'C': 3, 'D': 4, 'E': 5, 'F': 6})
-
 # lets create additional columns to the model
 #train_df['FamilySize'] = train_df.SibSp + train_df.Parch # family size
 #train_df['Age*Class'] = train_df.Age * train_df.Pclass # higher value less likely to survive
 
+
+
 # Remove the Name column, Cabin, Ticket, and Sex (since I copied and filled it to Gender)
-train_df = train_df.drop(['Name', 'Sex', 'Ticket', 'PassengerId', 'Age', 'Fare'], axis=1) 
+train_df = train_df.drop(['Name', 'Sex', 'Ticket', 'Cabin', 'PassengerId', 'Age', 'Fare'], axis=1) 
+
+
 
 # Remove the Name column, Cabin, Ticket, and Sex (since I copied and filled it to Gender)
 #train_df = train_df.drop(['Name', 'Sex', 'Ticket', 'Cabin', 'PassengerId'], axis=1) 
@@ -206,11 +206,14 @@ ids = test_df['PassengerId'].values
 
 
 # create additional AgeInterval
-test_df.loc[ (test_df['Age'] < 20), 'AgeInterval' ]  =  0
-test_df.loc[ (test_df['Age'] >= 20) & (test_df['Age'] < 40), 'AgeInterval' ]  =  1
-test_df.loc[ (test_df['Age'] >= 40) & (test_df['Age'] < 60), 'AgeInterval' ]  =  2
-test_df.loc[ (test_df['Age'] >= 60) & (test_df['Age'] < 80), 'AgeInterval' ]  =  3
-test_df.loc[ (test_df['Age'] >= 80) , 'AgeInterval' ]  =  4
+test_df.loc[ (test_df['Age'] < 10), 'AgeInterval' ]  =  0
+test_df.loc[ (test_df['Age'] >= 10) & (test_df['Age'] < 20), 'AgeInterval' ]  =  1
+test_df.loc[ (test_df['Age'] >= 20) & (test_df['Age'] < 30), 'AgeInterval' ]  =  2
+test_df.loc[ (test_df['Age'] >= 30) & (test_df['Age'] < 40), 'AgeInterval' ]  =  3
+test_df.loc[ (test_df['Age'] >= 40) & (test_df['Age'] < 50), 'AgeInterval' ]  =  4
+test_df.loc[ (test_df['Age'] >= 50) & (test_df['Age'] < 60), 'AgeInterval' ]  =  5
+test_df.loc[ (test_df['Age'] >= 60) & (test_df['Age'] < 70), 'AgeInterval' ]  =  6
+test_df.loc[ (test_df['Age'] >= 70) , 'AgeInterval' ]  =  7
 
 # create additional FareInterval
 test_df.loc[ (test_df['Fare'] < 10), 'FareInterval' ]  =  0
@@ -225,18 +228,13 @@ title = firstName.str.split('.').str[0]
 title = title.map(lambda x: x.lstrip(' ').rstrip('aAbBcC'))
 
 test_df['Title'] = title.map( titles_dic ).astype(int)     # Convert all Titles strings to int
-
-# create additional Cabin column
-test_df['Cabin'] = test_df['Cabin'].str.extract('(?P<letter>[ABCDEF])')
-test_df.loc[ (test_df.Cabin.isnull()), 'Cabin'] = 0
-test_df['Cabin'] = test_df['Cabin'].map( {0:0, 'A': 1, 'B': 2, 'C': 3, 'D': 4, 'E': 5, 'F': 6} ).astype(int)
-
+    
     # lets create additional columns to the model
 #test_df['FamilySize'] = test_df.SibSp + test_df.Parch # family size
 #test_df['Age*Class'] = test_df.Age * test_df.Pclass # higher value less likely to survive
 
 # Remove the Name column, Cabin, Ticket, and Sex (since I copied and filled it to Gender)
-test_df = test_df.drop(['Name', 'Sex', 'Ticket', 'PassengerId', 'Age', 'Fare'], axis=1) 
+test_df = test_df.drop(['Name', 'Sex', 'Ticket', 'Cabin', 'PassengerId', 'Age', 'Fare'], axis=1) 
 
 # The data is now ready to go. So lets fit to the train, then predict to the test!
 # Convert back to a numpy array
@@ -245,9 +243,7 @@ test_data = test_df.values
 
 
 print 'Training...'
-#forest = RandomForestClassifier(n_estimators=200, max_features = 3, max_depth=None, min_samples_split=1)
 forest = RandomForestClassifier(n_estimators=100)
-
 forest = forest.fit( train_data[0::,1::], train_data[0::,0] )
 
 print 'Predicting...'
@@ -260,6 +256,3 @@ open_file_object.writerow(["PassengerId","Survived"])
 open_file_object.writerows(zip(ids, output))
 predictions_file.close()
 print 'Done.'
-
-
-
