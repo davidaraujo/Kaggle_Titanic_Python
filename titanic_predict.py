@@ -12,10 +12,14 @@ from sklearn.ensemble import RandomForestClassifier
 import pylab as P
 import re
 import math as m
+from sklearn.cross_validation import cross_val_score
 
 # Data cleanup
 # TRAIN DATA
 train_df = pd.read_csv('train.csv', header=0)        # Load the train file into a dataframe
+
+# columns not to be used in the model
+variables_to_drop = ['Name', 'Sex', 'Ticket', 'PassengerId', 'Age', 'Fare', 'Age*Class', 'SibSp', 'Parch']
 
 # I need to convert all strings to integer classifiers.
 # I need to fill in the missing values of the data and make it complete.
@@ -117,20 +121,25 @@ titles_dic = {'Col': 0,
  }
  
 
+
 train_df['Title'] = title.map( titles_dic ).astype(int)     # Convert all Titles strings to int
 
 # create additional Cabin column
 train_df['Cabin'] = train_df['Cabin'].str.extract('(?P<letter>[ABCDEF])')
-#train_df[ (train_df.Cabin.isnull()) ] = 0
 train_df.loc[ (train_df.Cabin.isnull()), 'Cabin'] = 0
 train_df['Cabin'] = train_df['Cabin'].map( {0:0, 'A': 1, 'B': 2, 'C': 3, 'D': 4, 'E': 5, 'F': 6})
 
 # lets create additional columns to the model
-#train_df['FamilySize'] = train_df.SibSp + train_df.Parch # family size
-#train_df['Age*Class'] = train_df.Age * train_df.Pclass # higher value less likely to survive
+train_df['FamilySize'] = train_df.SibSp + train_df.Parch # family size
+train_df['Age*Class'] = train_df.Age * train_df.Pclass # higher value less likely to survive
+
+train_df.loc[ (train_df['Age*Class'] < 40), 'Age*ClassI' ]  =  0
+train_df.loc[ (train_df['Age*Class'] >= 40) & (train_df['Age*Class'] < 80), 'Age*ClassI' ]  =  1
+train_df.loc[ (train_df['Age*Class'] >= 80) & (train_df['Age*Class'] < 120), 'Age*ClassI' ]  =  2
+train_df.loc[ (train_df['Age*Class'] >= 120), 'Age*ClassI' ]  =  3
 
 # Remove the Name column, Cabin, Ticket, and Sex (since I copied and filled it to Gender)
-train_df = train_df.drop(['Name', 'Sex', 'Ticket', 'PassengerId', 'Age', 'Fare'], axis=1) 
+train_df = train_df.drop(variables_to_drop, axis=1) 
 
 # Remove the Name column, Cabin, Ticket, and Sex (since I copied and filled it to Gender)
 #train_df = train_df.drop(['Name', 'Sex', 'Ticket', 'Cabin', 'PassengerId'], axis=1) 
@@ -232,11 +241,20 @@ test_df.loc[ (test_df.Cabin.isnull()), 'Cabin'] = 0
 test_df['Cabin'] = test_df['Cabin'].map( {0:0, 'A': 1, 'B': 2, 'C': 3, 'D': 4, 'E': 5, 'F': 6} ).astype(int)
 
     # lets create additional columns to the model
-#test_df['FamilySize'] = test_df.SibSp + test_df.Parch # family size
-#test_df['Age*Class'] = test_df.Age * test_df.Pclass # higher value less likely to survive
+test_df['FamilySize'] = test_df.SibSp + test_df.Parch # family size
+test_df['Age*Class'] = test_df.Age * test_df.Pclass # higher value less likely to survive
+
+#print(np.unique(test_df['FamilySize']))
+#print(np.unique(test_df['Age*Class']))
+
+test_df.loc[ (test_df['Age*Class'] < 40), 'Age*ClassI' ]  =  0
+test_df.loc[ (test_df['Age*Class'] >= 40) & (test_df['Age*Class'] < 80), 'Age*ClassI' ]  =  1
+test_df.loc[ (test_df['Age*Class'] >= 80) & (test_df['Age*Class'] < 120), 'Age*ClassI' ]  =  2
+test_df.loc[ (test_df['Age*Class'] >= 120), 'Age*ClassI' ]  =  3
+
 
 # Remove the Name column, Cabin, Ticket, and Sex (since I copied and filled it to Gender)
-test_df = test_df.drop(['Name', 'Sex', 'Ticket', 'PassengerId', 'Age', 'Fare'], axis=1) 
+test_df = test_df.drop(variables_to_drop, axis=1) 
 
 # The data is now ready to go. So lets fit to the train, then predict to the test!
 # Convert back to a numpy array
@@ -253,6 +271,18 @@ forest = forest.fit( train_data[0::,1::], train_data[0::,0] )
 print 'Predicting...'
 output = forest.predict(test_data).astype(int)
 
+score = forest.score(train_data[0::,1::], train_data[0::,0] )
+
+print "SCORE: " + str(score)
+
+#labels = train_df["Survived"].values
+#features = train_df[train_df.keys()].values
+ 
+#et_score = cross_val_score(forest, features, labels, n_jobs=-1).mean()
+ 
+
+#et_score = cross_val_score(et, features, labels, n_jobs=-1).mean()
+#print("{0} -> ET: {1})".format(train_df.keys(), et_score))
 
 predictions_file = open("davidforest.csv", "wb")
 open_file_object = csv.writer(predictions_file)
